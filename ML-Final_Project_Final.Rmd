@@ -1,0 +1,81 @@
+---
+title: "Machine Learning - Final Project"
+author: "Renato Oliveira Fraga"
+date: "9/30/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Abstract
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: <http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har> (see the section on the Weight Lifting Exercise Dataset).
+
+### Loading Libraries
+
+```{r loading_libraries}
+library(caret)
+library(knitr)
+library(ggplot2)
+library(gbm)
+```
+
+## Data
+
+The training data for this project are available here:
+
+<https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv>
+
+The test data are available here:
+
+<https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv>
+
+The idea is to split the training data in 2 data sets: training (70%) and testing (30%). The test data will be used as Validation data.
+
+### Loading the Data
+
+```{r loading_data}
+train_Url <- "http://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+val_Url <- "http://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+
+training <- read.csv(url(train_Url), header = TRUE)
+validation <- read.csv(url(val_Url), header = TRUE)
+```
+
+### Splitting the Training Data
+
+```{r splitting}
+set.seed(1974)
+inTrain <- createDataPartition(training$classe, p=0.75, list=FALSE)
+trainData <- training[inTrain, ]
+testData <- training[-inTrain, ]
+```
+
+## Prediction with Stochastic Gradient Boosting (gbm)
+
+```{r gbm}
+modFit <- train(classe ~ user_name + pitch_arm + yaw_arm + roll_arm + roll_belt + pitch_belt + yaw_belt + gyros_belt_x + gyros_belt_y + gyros_belt_z + accel_belt_x + accel_belt_y + accel_belt_z + magnet_belt_x + magnet_belt_y + magnet_belt_z + gyros_arm_x + gyros_arm_y + gyros_arm_z + accel_arm_x + accel_arm_y + accel_arm_z + magnet_arm_x + magnet_arm_y + magnet_arm_z + roll_dumbbell + pitch_dumbbell + yaw_dumbbell, method="gbm", data=trainData, verbose=FALSE)
+print(modFit)
+featurePlot(x=trainData[, c("roll_belt", "yaw_belt","pitch_belt")], y=trainData$classe, plot = "pairs" )
+```
+
+## Predicting
+
+```{r predict}
+pred_test <- predict(modFit, newdata = testData)
+confusionMatrix(pred_test, testData$classe)
+
+```
+## Validation Set Predictions
+```{r}
+result <- predict(modFit, newdata=validation)
+as.character(result)
+```
+
+## References
+
+1. An Introduction to Statistical Learning, G. James, D. Witten, T. Hastie, R. Tibshirani. Ed. Springer Verlag (2013). ISBN: 978-1-4614-7138-7.
+
+2. The Elements of Statistical Learning (2nd. Edition, 10th printing), T. Hastie, R. Tibshirani, J. Friedman. Ed. Springer Verlag (2009). ISBN: 978-0-3878-4857-0.
